@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Macro Tracker</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      min-height: 100vh;
+      padding: 16px;
+    }
+
+    .container {
+      max-width: 500px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    header h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .last-updated {
+      font-size: 0.75rem;
+      color: #888;
+      margin-top: 4px;
+    }
+
+    .today-section {
+      background: #16213e;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+
+    .today-header {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: #fff;
+    }
+
+    .progress-group {
+      margin-bottom: 16px;
+    }
+
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+    }
+
+    .progress-label span:first-child {
+      color: #aaa;
+    }
+
+    .progress-label span:last-child {
+      font-weight: 600;
+    }
+
+    .progress-bar {
+      height: 12px;
+      background: #2a2a4a;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      border-radius: 6px;
+      transition: width 0.3s ease;
+    }
+
+    .progress-fill.green { background: linear-gradient(90deg, #00b894, #00cec9); }
+    .progress-fill.yellow { background: linear-gradient(90deg, #fdcb6e, #f39c12); }
+    .progress-fill.red { background: linear-gradient(90deg, #e74c3c, #c0392b); }
+
+    .entries-header {
+      font-size: 0.9rem;
+      color: #888;
+      margin: 20px 0 12px;
+      padding-top: 16px;
+      border-top: 1px solid #2a2a4a;
+    }
+
+    .entry {
+      background: #1a1a2e;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 8px;
+    }
+
+    .entry-time {
+      font-size: 0.75rem;
+      color: #888;
+      margin-bottom: 4px;
+    }
+
+    .entry-desc {
+      font-size: 0.95rem;
+      margin-bottom: 6px;
+    }
+
+    .entry-macros {
+      display: flex;
+      gap: 16px;
+      font-size: 0.8rem;
+      color: #aaa;
+    }
+
+    .entry-macros span {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .cal-dot { color: #00cec9; }
+    .pro-dot { color: #a29bfe; }
+
+    .no-entries {
+      text-align: center;
+      color: #666;
+      padding: 20px;
+      font-size: 0.9rem;
+    }
+
+    .history-section {
+      margin-top: 32px;
+    }
+
+    .history-header {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #888;
+      margin-bottom: 16px;
+    }
+
+    .history-day {
+      background: #16213e;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+
+    .history-day-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .history-date {
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    .history-totals {
+      font-size: 0.8rem;
+      color: #888;
+    }
+
+    .history-entries {
+      display: none;
+    }
+
+    .history-day.expanded .history-entries {
+      display: block;
+    }
+
+    .history-day-header {
+      cursor: pointer;
+    }
+
+    .expand-icon {
+      color: #666;
+      transition: transform 0.2s;
+    }
+
+    .history-day.expanded .expand-icon {
+      transform: rotate(180deg);
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #666;
+    }
+
+    .error {
+      text-align: center;
+      padding: 40px;
+      color: #e74c3c;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Macro Tracker</h1>
+      <div class="last-updated" id="lastUpdated"></div>
+    </header>
+
+    <div id="content">
+      <div class="loading">Loading...</div>
+    </div>
+  </div>
+
+  <script>
+    async function loadData() {
+      try {
+        const response = await fetch('data.json');
+        if (!response.ok) throw new Error('Failed to load data');
+        const data = await response.json();
+        renderApp(data);
+      } catch (error) {
+        document.getElementById('content').innerHTML =
+          '<div class="error">Could not load data. Make sure data.json exists.</div>';
+      }
+    }
+
+    function getLocalDateString(date = new Date()) {
+      return date.toISOString().split('T')[0];
+    }
+
+    function formatDate(dateStr) {
+      const date = new Date(dateStr + 'T00:00:00');
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+
+      if (dateStr === getLocalDateString(today)) return 'Today';
+      if (dateStr === getLocalDateString(yesterday)) return 'Yesterday';
+
+      return date.toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric'
+      });
+    }
+
+    function getProgressColor(current, goal) {
+      const ratio = current / goal;
+      if (ratio >= 1.1) return 'red';
+      if (ratio >= 0.9) return 'yellow';
+      return 'green';
+    }
+
+    function calculateTotals(entries) {
+      return entries.reduce((acc, entry) => ({
+        calories: acc.calories + entry.calories,
+        protein: acc.protein + entry.protein
+      }), { calories: 0, protein: 0 });
+    }
+
+    function findLastUpdated(log) {
+      let lastEntry = null;
+      let lastDate = null;
+
+      for (const day of log) {
+        for (const entry of day.entries) {
+          const entryDateTime = new Date(`${day.date}T${entry.time}`);
+          if (!lastEntry || entryDateTime > lastDate) {
+            lastEntry = entry;
+            lastDate = entryDateTime;
+          }
+        }
+      }
+
+      if (lastDate) {
+        return lastDate.toLocaleString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit'
+        });
+      }
+      return null;
+    }
+
+    function renderEntries(entries) {
+      if (!entries || entries.length === 0) {
+        return '<div class="no-entries">No entries yet</div>';
+      }
+
+      return entries.map(entry => `
+        <div class="entry">
+          <div class="entry-time">${entry.time}</div>
+          <div class="entry-desc">${entry.description}</div>
+          <div class="entry-macros">
+            <span><span class="cal-dot">●</span> ${entry.calories} cal</span>
+            <span><span class="pro-dot">●</span> ${entry.protein}g protein</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderProgressBar(label, current, goal, unit) {
+      const percentage = Math.min((current / goal) * 100, 100);
+      const color = getProgressColor(current, goal);
+      const overGoal = current > goal ? ` (+${current - goal})` : '';
+
+      return `
+        <div class="progress-group">
+          <div class="progress-label">
+            <span>${label}</span>
+            <span>${current} / ${goal}${unit}${overGoal}</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill ${color}" style="width: ${percentage}%"></div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderApp(data) {
+      const { goals, log } = data;
+      const today = getLocalDateString();
+
+      // Sort log by date descending
+      const sortedLog = [...log].sort((a, b) => b.date.localeCompare(a.date));
+
+      // Find today's data
+      const todayData = sortedLog.find(d => d.date === today);
+      const todayEntries = todayData?.entries || [];
+      const todayTotals = calculateTotals(todayEntries);
+
+      // Historical data (excluding today)
+      const historyData = sortedLog.filter(d => d.date !== today);
+
+      // Update last updated
+      const lastUpdated = findLastUpdated(log);
+      if (lastUpdated) {
+        document.getElementById('lastUpdated').textContent = `Last updated: ${lastUpdated}`;
+      }
+
+      let html = `
+        <div class="today-section">
+          <div class="today-header">${formatDate(today)}</div>
+          ${renderProgressBar('Calories', todayTotals.calories, goals.calories, ' cal')}
+          ${renderProgressBar('Protein', todayTotals.protein, goals.protein, 'g')}
+          <div class="entries-header">Today's Entries</div>
+          ${renderEntries(todayEntries)}
+        </div>
+      `;
+
+      if (historyData.length > 0) {
+        html += `
+          <div class="history-section">
+            <div class="history-header">History</div>
+            ${historyData.map(day => {
+              const totals = calculateTotals(day.entries);
+              return `
+                <div class="history-day" onclick="this.classList.toggle('expanded')">
+                  <div class="history-day-header">
+                    <span class="history-date">${formatDate(day.date)}</span>
+                    <span class="history-totals">${totals.calories} cal · ${totals.protein}g pro</span>
+                    <span class="expand-icon">▼</span>
+                  </div>
+                  <div class="history-entries">
+                    ${renderEntries(day.entries)}
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+      }
+
+      document.getElementById('content').innerHTML = html;
+    }
+
+    // Load data on page load
+    loadData();
+  </script>
+</body>
+</html>

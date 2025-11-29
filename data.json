@@ -1,0 +1,54 @@
+{
+  "goals": {
+    "calories": 2000,
+    "protein": 150
+  },
+  "log": [
+    {
+      "date": "2025-11-29",
+      "entries": [
+        {
+          "time": "08:30",
+          "description": "3 eggs, toast with butter",
+          "calories": 450,
+          "protein": 25
+        },
+        {
+          "time": "12:15",
+          "description": "Chicken salad with olive oil",
+          "calories": 550,
+          "protein": 45
+        },
+        {
+          "time": "15:00",
+          "description": "Greek yogurt with almonds",
+          "calories": 280,
+          "protein": 20
+        }
+      ]
+    },
+    {
+      "date": "2025-11-28",
+      "entries": [
+        {
+          "time": "09:00",
+          "description": "Oatmeal with banana and protein powder",
+          "calories": 380,
+          "protein": 30
+        },
+        {
+          "time": "13:00",
+          "description": "Turkey sandwich, apple",
+          "calories": 520,
+          "protein": 35
+        },
+        {
+          "time": "18:30",
+          "description": "Salmon, rice, vegetables",
+          "calories": 650,
+          "protein": 45
+        }
+      ]
+    }
+  ]
+}
