@@ -1,0 +1,255 @@
+# Macro Tracker MCP Server
+
+MCP server for managing the Macro Tracker via GitHub API. Allows Claude to read and write food tracking data directly to your GitHub repository.
+
+## Features
+
+- **Read Data**: View current macro tracking data from GitHub
+- **Add Entries**: Add new food entries with automatic date handling
+- **Update Entries**: Modify existing food entries
+- **Delete Entries**: Remove food entries
+- **Auto-commit**: All changes are automatically committed to GitHub
+
+## Setup Instructions
+
+### 1. Install Dependencies
+
+```bash
+cd mcp-server
+npm install
+```
+
+### 2. Create GitHub Personal Access Token
+
+1. Go to GitHub Settings → Developer settings → Personal access tokens → Tokens (classic)
+2. Click "Generate new token (classic)"
+3. Give it a descriptive name like "Macro Tracker MCP"
+4. Select scopes:
+   - ✅ `repo` (Full control of private repositories)
+5. Click "Generate token"
+6. **Copy the token** (you won't see it again!)
+
+### 3. Set Environment Variable
+
+**Windows (PowerShell):**
+```powershell
+$env:GITHUB_TOKEN = "ghp_your_token_here"
+```
+
+**Windows (Command Prompt):**
+```cmd
+set GITHUB_TOKEN=ghp_your_token_here
+```
+
+**For permanent setup on Windows:**
+1. Search "Environment Variables" in Windows Search
+2. Click "Edit the system environment variables"
+3. Click "Environment Variables" button
+4. Under "User variables", click "New"
+5. Variable name: `GITHUB_TOKEN`
+6. Variable value: `ghp_your_token_here`
+7. Click OK
+
+### 4. Build the Server
+
+```bash
+npm run build
+```
+
+### 5. Run the Server
+
+**HTTP mode (for remote access via Remote.it):**
+```bash
+npm start
+```
+
+The server will run on port 7870 by default. You can change it with:
+```bash
+set PORT=8080
+npm start
+```
+
+**Stdio mode (for Claude Desktop):**
+```bash
+set TRANSPORT=stdio
+npm start
+```
+
+## Remote Access Setup (Remote.it)
+
+To access the MCP server from Claude mobile app:
+
+1. **Start the MCP server** in HTTP mode:
+   ```bash
+   npm start
+   ```
+
+2. **Set up Remote.it tunnel** to expose port 7870
+
+3. **Configure Claude app** with the Remote.it URL
+
+## Available Tools
+
+### `read_macro_data`
+Read the current contents of `data.json` from GitHub.
+
+**Parameters:** None
+
+**Example usage in chat:**
+```
+Show me my current macro data
+```
+
+### `add_food_entry`
+Add a new food entry to the tracker.
+
+**Parameters:**
+- `date` (string): Date in YYYY-MM-DD format
+- `time` (string): Time in HH:MM format (24-hour)
+- `description` (string): Description of food eaten
+- `calories` (number): Total calories
+- `protein` (number): Total protein in grams
+
+**Example usage in chat:**
+```
+I ate 3 scrambled eggs and toast with butter at 8:30am
+```
+Claude will estimate calories/protein and use the tool to add the entry.
+
+### `update_food_entry`
+Update an existing food entry.
+
+**Parameters:**
+- `date` (string): Date in YYYY-MM-DD format
+- `entryIndex` (number): Index of entry to update (0-based)
+- `time` (string, optional): New time
+- `description` (string, optional): New description
+- `calories` (number, optional): New calories
+- `protein` (number, optional): New protein
+
+**Example usage in chat:**
+```
+Actually that breakfast was only 400 calories, can you update entry 0 for today?
+```
+
+### `delete_food_entry`
+Delete a food entry.
+
+**Parameters:**
+- `date` (string): Date in YYYY-MM-DD format
+- `entryIndex` (number): Index of entry to delete (0-based)
+
+**Example usage in chat:**
+```
+Delete the second entry from today
+```
+
+## How It Works
+
+1. **GitHub Integration**: The MCP server uses GitHub API to read and write `data.json`
+2. **HTTP Server**: Runs on port 7870 (or custom port) for remote access
+3. **Remote.it Tunnel**: Makes your local server accessible from anywhere
+4. **Mobile Access**: Claude mobile app connects to your server via Remote.it
+5. **Auto-commit**: Every change creates a new commit in your GitHub repo
+
+## Configuration
+
+### Environment Variables
+
+- `GITHUB_TOKEN` (required): Your GitHub personal access token
+- `PORT` (optional): Server port (default: 7870)
+- `TRANSPORT` (optional): Transport mode - "http" or "stdio" (default: http)
+
+### Repository Settings
+
+Edit `src/index.ts` to change these constants:
+- `REPO_OWNER`: GitHub username (currently: PeterBowles)
+- `REPO_NAME`: Repository name (currently: Macro_Tracker)
+- `FILE_PATH`: Path to data file (currently: data.json)
+- `BRANCH`: Git branch (currently: main)
+
+## Usage Example
+
+```
+You: I had a chicken salad for lunch around 12:30
+
+Claude: I'll add that to your tracker. A typical chicken salad has about 450 calories and 35g of protein.
+[Uses add_food_entry tool]
+Done! I've added your chicken salad and committed the changes to GitHub.
+
+You: Show me my totals for today
+
+Claude: [Uses read_macro_data tool]
+Here's your progress for today:
+- Calories: 1280 / 2000 (64%)
+- Protein: 90g / 150g (60%)
+[Shows all entries]
+```
+
+## File Structure
+
+```
+Macro_Tracker/
+├── mcp-server/
+│   ├── src/
+│   │   └── index.ts         (MCP server with GitHub API)
+│   ├── dist/                (generated by build)
+│   ├── package.json
+│   ├── tsconfig.json
+│   ├── .gitignore
+│   └── README.md
+├── data.json                (tracked in GitHub)
+└── index.html               (web UI)
+```
+
+## Development
+
+To rebuild after making changes:
+
+```bash
+npm run build
+```
+
+To run in development mode (build + start):
+
+```bash
+npm run dev
+```
+
+## Troubleshooting
+
+### "GITHUB_TOKEN environment variable is required"
+- Make sure you've set the token as shown in step 3
+- Restart your terminal after setting environment variables
+
+### "GitHub API error (404)"
+- Verify the repository exists at github.com/PeterBowles/Macro_Tracker
+- Check that your token has `repo` permissions
+- Make sure `data.json` exists in the repository
+
+### "GitHub API error (401)"
+- Your token is invalid or expired
+- Generate a new token and update the environment variable
+
+### Server won't start on port 7870
+- Port might be in use
+- Change the port: `set PORT=8080 && npm start`
+
+### Build errors
+Make sure you have Node.js v18+ installed:
+```bash
+node --version
+```
+
+## Security
+
+- **GitHub Token**: Keep your token secret! Never commit it to git
+- **Environment Variables**: Token is stored as environment variable only
+- **Public Repo**: Your food data will be publicly visible on GitHub
+- **Remote.it**: Provides secure tunnel for remote access
+
+## Next Steps
+
+1. Set up Remote.it tunnel for port 7870
+2. Configure Claude mobile app to connect to your Remote.it URL
+3. Start tracking your macros by chatting with Claude!

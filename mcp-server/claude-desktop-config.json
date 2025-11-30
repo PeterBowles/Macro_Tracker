@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "macro-tracker": {
+      "command": "node",
+      "args": ["C:\\Users\\peter\\Documents\\_Coding_Projects\\Macro_Tracker\\mcp-server\\dist\\index.js"],
+      "env": {
+        "TRANSPORT": "stdio"
+      }
+    }
+  }
+}
