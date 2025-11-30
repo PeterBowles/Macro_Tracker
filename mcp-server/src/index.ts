@@ -526,8 +526,8 @@ async function runHTTP() {
   });
 
   const port = parseInt(process.env.PORT || '7870');
-  app.listen(port, () => {
-    console.error(`Macro Tracker MCP server running on http://localhost:${port}/mcp`);
+  app.listen(port, '0.0.0.0', () => {
+    console.error(`Macro Tracker MCP server running on http://0.0.0.0:${port}/mcp`);
     console.error(`Repository: ${REPO_OWNER}/${REPO_NAME}`);
     console.error(`File: ${FILE_PATH}`);
   });
